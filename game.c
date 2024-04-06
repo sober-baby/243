@@ -2,10 +2,15 @@
 
 #include <stdio.h>
 
-short int grid[160][240];
 volatile int pixel_buffer_start; // global variable
 short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
 short int Buffer2[240][512];
+
+//define bullet direction (down, left, right)
+#define DOWN 1
+#define LEFTDOWN 2
+#define RIGHTDOWN 3
+
 
 void swap(int *a, int *b);
 int abs(int num);
@@ -25,7 +30,12 @@ struct Pair
 //function to check if the player has collided with an enemy bullet in the bullet array
 int collision(struct Pair player, struct Pair Bulletarray[]){
     for(int i = 0; i < 1000; i++){
-        if(Bulletarray[i].x == player.x && Bulletarray[i].y == player.y){
+        //check all 8 sides of the player if the coordinates are the same as the bullet
+        if(Bulletarray[i].x == player.x && Bulletarray[i].y == player.y || Bulletarray[i].x == player.x+1 && Bulletarray[i].y == player.y+1
+        || Bulletarray[i].x == player.x && Bulletarray[i].y == player.y+1 || Bulletarray[i].x == player.x+1 && Bulletarray[i].y == player.y
+        || Bulletarray[i].x == player.x && Bulletarray[i].y == player.y-1 || Bulletarray[i].x == player.x-1 && Bulletarray[i].y == player.y
+        || Bulletarray[i].x == player.x-1 && Bulletarray[i].y == player.y-1 || Bulletarray[i].x == player.x-1 && Bulletarray[i].y == player.y+1
+        || Bulletarray[i].x == player.x+1 && Bulletarray[i].y == player.y-1){
             return 1;
         }
     }
@@ -104,25 +114,28 @@ void movePlayer(struct Pair *player, int x, int y){
 }
 
 
-//function to make an enemy shoot randomly by changing the grid values
-void shoot(struct Pair *copyOfEnemy){
-    int x = copyOfEnemy->x;
-    int y = copyOfEnemy->y;
-    int direction = rand() % 4;
-    if(direction == 1){
-        x = x + 1;
-    } else if(direction == 2){
-        x = x - 1;
-    } else if(direction == 3){
-        y = y + 1;
-    } else if(direction == 4){
-        y = y - 1;
-    }
-    if (x < 320 && x > 0 && y < 240 && y > 0){
-        grid[x][y] = 1;
+//function to make an ememy generate a bullet in one of the three directions, store the bullet in the bullet array
+void generateBullet(struct Pair enemy, struct Pair Bulletarray[], int bulletDirection, int bulletCount){
+    if(bulletDirection == DOWN){
+        Bulletarray[bulletCount] = (struct Pair){enemy.x, enemy.y-1};
+    } else if(bulletDirection == LEFTDOWN){
+        Bulletarray[bulletCount] = (struct Pair){enemy.x-1, enemy.y-1};
+    } else if(bulletDirection == RIGHTDOWN){
+        Bulletarray[bulletCount] = (struct Pair){enemy.x+1, enemy.y-1};
     }
 }
 
+void moveBulletInDirection(struct Pair *bullet, int direction){
+    if(direction == DOWN){
+        bullet->y += 1;
+    } else if(direction == LEFTDOWN){
+        bullet->x -= 1;
+        bullet->y += 1;
+    } else if(direction == RIGHTDOWN){
+        bullet->x += 1;
+        bullet->y += 1;
+    }
+}
 
 int main(void){
     struct Pair Bulletarray[1000];
@@ -154,18 +167,37 @@ int main(void){
     while(enemy2.x == enemy1.x && enemy2.y == enemy1.y){
         enemy2 = generate_enemy();
     }
+    int timeCounter = 0;
  
 
 
     while(playerHealth > 0){
+
+        //Initialize
         reset_screen();
         draw_square(player.x, player.y, 0xFFFF);
         draw_square(enemy1.x, enemy1.y, 0xF800);
         draw_square(enemy2.x, enemy2.y, 0xF800);
+
+        //code to generate bullets, first enenmy generates the first bullet occpying 0-499 in the bullet array
+        generateBullet(enemy1, Bulletarray, DOWN, timeCounter);
+        generateBullet(enemy2, Bulletarray, DOWN, timeCounter+500);
+        timeCounter++;
+
+        //code to move all the bullets in the bullet array
+        for(int i = 0; i < 1000; i++){
+            if(Bulletarray[i].x != 0 && Bulletarray[i].y != 0){
+                moveBulletInDirection(&Bulletarray[i], DOWN);
+                //draw the bullet
+                plot_pixel(Bulletarray[i].x, Bulletarray[i].y, 0x07E0);
+            }
+        }
+
+
+
+        //code to move the player
         struct Pair playerDirections = getPlayerDirectionsFromPS2();
         movePlayer(&player, playerDirections.x, playerDirections.y);
-        shoot(&enemy1);
-        
         if(collision(player, Bulletarray) == 1){
             playerHealth--;
         }
