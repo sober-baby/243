@@ -1,12 +1,8 @@
 //create a 2d array as the game grid
 
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <stdbool.h>
-// #include <time.h>
-// #include <unistd.h>
+#include <stdio.h>
 
-short int grid[320][240];
+short int grid[160][240];
 volatile int pixel_buffer_start; // global variable
 short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
 short int Buffer2[240][512];
@@ -19,69 +15,65 @@ void draw_line(int x0, int y0, int x1, int y1, short int line_color);
 void draw_square(int x, int y, short int line_color);
 void wait_for_vsync();
 
+//struct to represent the player and enemy targets
 struct Pair
 {
     int x;
     int y;
 };
 
-int collision(struct Pair a){
-    if(grid[a.x][a.y] == 1){
-        return 1;
+//function to check if the player has collided with an enemy bullet in the bullet array
+int collision(struct Pair player, struct Pair Bulletarray[]){
+    for(int i = 0; i < 1000; i++){
+        if(Bulletarray[i].x == player.x && Bulletarray[i].y == player.y){
+            return 1;
+        }
     }
     return 0;
 }
 
-//function to load the grid with 0s
-void clear_grid(){
-    for (int i = 0; i < 320; i++){
-        for (int j = 0; j < 240; j++){
-            grid[i][j] = 0;
-        }
-    }
-}
-
-
-struct Pair getPlayerDirectionsFromPS2(){
+// function to get input from the PS2 controller
+struct Pair getPlayerDirectionsFromPS2()
+{
     unsigned char byte1 = 0;
-	unsigned char byte2 = 0;
-	unsigned char byte3 = 0;
-	
-  	volatile int * PS2_ptr = (int *) 0xFF200100;
+    unsigned char byte2 = 0;
+    unsigned char byte3 = 0;
+    volatile int *PS2_ptr = (int *)0xFF200100;
     int PS2_data, RVALID;
-    // while (1) {
-		PS2_data = *(PS2_ptr);	// read the Data register in the PS/2 port
-		RVALID = (PS2_data & 0x8000);	// extract the RVALID field
-		if (RVALID != 0)
-		{
-			/* always save the last three bytes received */
-			byte1 = byte2;
-			byte2 = byte3;
-			byte3 = PS2_data & 0xFF;
-		}
-        //check WASD keys
-        //W
-        if(byte3 == 0x1D){
-            return (struct Pair){0, 1};
-        //A
-        } else if(byte3 == 0x1C){
-            return (struct Pair){-1, 0};
-        //S
-        } else if(byte3 == 0x1B){
-            return (struct Pair){0, -1};
-        //D
-        } else if(byte3 == 0x23){
-            return (struct Pair){1, 0};
-        }else{
-            return (struct Pair){0, 0};
-        }
-
-		// if ( (byte2 == 0xAA) && (byte3 == 0x00) )
-		// {
-		// 	// mouse inserted; initialize sending of data
-		// 	*(PS2_ptr) = 0xF4;
-		// }
-	// }
+    PS2_data = *(PS2_ptr);        // read the Data register in the PS/2 port
+    RVALID = (PS2_data & 0x8000); // extract the RVALID field
+    if (RVALID != 0)
+    {
+        /* always save the last three bytes received */
+        byte1 = byte2;
+        byte2 = byte3;
+        byte3 = PS2_data & 0xFF;
+    }
+    // check WASD keys
+    // W
+    if (byte3 == 0x1D)
+    {
+        return (struct Pair){0, -5};
+        // A
+    }
+    else if (byte3 == 0x1C)
+    {
+        return (struct Pair){-5, 0};
+        // S
+    }
+    else if (byte3 == 0x1B)
+    {
+        return (struct Pair){0, 5};
+        // D
+    }
+    else if (byte3 == 0x23)
+    {
+        return (struct Pair){5, 0};
+    }
+    else
+    {
+        return (struct Pair){0, 0};
+    }
 }
 
 //function to generate a random player at the start of the game, towards the bottom of the screen
@@ -111,6 +103,7 @@ void movePlayer(struct Pair *player, int x, int y){
     }
 }
 
+
 //function to make an enemy shoot randomly by changing the grid values
 void shoot(struct Pair *copyOfEnemy){
     int x = copyOfEnemy->x;
@@ -132,6 +125,7 @@ void shoot(struct Pair *copyOfEnemy){
 
 
 int main(void){
+    struct Pair Bulletarray[1000];
     //code for setting up the VGA display
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
 	// declare other variables(not shown)
@@ -143,28 +137,28 @@ int main(void){
 	wait_for_vsync();
 	/* initialize a pointer to the pixel buffer, used by drawing functions */
 	pixel_buffer_start = *pixel_ctrl_ptr;
-	clear_screen(); // pixel_buffer_start points to the pixel buffer
-	/* set back pixel buffer to Buffer 2 */
+    reset_screen();
+    /* set back pixel buffer to Buffer 2 */
 	*(pixel_ctrl_ptr + 1) = (int) &Buffer2;
 	pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
-	clear_screen(); // pixel_buffer_start points to the pixel buffer
+    reset_screen();  
     int base[10] = {0xFFFF, 0xFFE0,  0xF800,  0x07E0, 0x001F, 0x07FF, 0xF81F, 0xC618, 0xFC18, 0xFC00};
+    
 
     
     int playerHealth = 3;
-    clear_grid();
     struct Pair player = generate_player();
-    struct Pair enemy1 = generate_player();
+    struct Pair enemy1 = generate_enemy();
     //check if the second enemy is not on the same spot as the first enemy
-    struct Pair enemy2 = generate_player();
+    struct Pair enemy2 = generate_enemy();
     while(enemy2.x == enemy1.x && enemy2.y == enemy1.y){
-        enemy2 = generate_player();
+        enemy2 = generate_enemy();
     }
  
 
 
     while(playerHealth > 0){
-        clear_screen();
+        reset_screen();
         draw_square(player.x, player.y, 0xFFFF);
         draw_square(enemy1.x, enemy1.y, 0xF800);
         draw_square(enemy2.x, enemy2.y, 0xF800);
@@ -172,7 +166,7 @@ int main(void){
         movePlayer(&player, playerDirections.x, playerDirections.y);
         shoot(&enemy1);
         
-        if(collision(player) == 1){
+        if(collision(player, Bulletarray) == 1){
             playerHealth--;
         }
         wait_for_vsync();
@@ -201,6 +195,14 @@ void plot_pixel(int x, int y, short int line_color)
 
         *one_pixel_address = line_color;
 	
+}
+
+void reset_screen(){
+    for(int i = 0; i < 320; i++){
+        for(int j = 0; j < 240; j++){
+            plot_pixel(i, j, 0x0000);
+        }
+    }
 }
 
 //function to clear the screen based on given position
