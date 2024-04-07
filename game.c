@@ -127,13 +127,13 @@ void generateBullet(struct Pair enemy, struct Pair Bulletarray[], int bulletDire
 
 void moveBulletInDirection(struct Pair *bullet, int direction){
     if(direction == DOWN){
-        bullet->y += 1;
+        bullet->y += 2;
     } else if(direction == LEFTDOWN){
-        bullet->x -= 1;
-        bullet->y += 1;
+        bullet->x -= 2;
+        bullet->y += 2;
     } else if(direction == RIGHTDOWN){
-        bullet->x += 1;
-        bullet->y += 1;
+        bullet->x += 2;
+        bullet->y += 2;
     }
 }
 
@@ -185,11 +185,13 @@ int main(void){
         timeCounter++;
 
         //code to move all the bullets in the bullet array
-        for(int i = 0; i < 1000; i++){
+        for(int i = 0; i < 500; i++){
             if(Bulletarray[i].x != 0 && Bulletarray[i].y != 0){
                 moveBulletInDirection(&Bulletarray[i], DOWN);
+                moveBulletInDirection(&Bulletarray[i+500], DOWN);
                 //draw the bullet
                 plot_pixel(Bulletarray[i].x, Bulletarray[i].y, 0x07E0);
+                plot_pixel(Bulletarray[i+500].x, Bulletarray[i+500].y, 0x07E0); 
             }
         }
 
