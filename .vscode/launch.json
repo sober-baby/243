@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Users/James/OneDrive/Desktop/243/243",
-      "program": "c:/Users/James/OneDrive/Desktop/243/243/build/Debug/outDebug",
+      "cwd": "c:/Users/James/OneDrive/Documents/GitHub/243",
+      "program": "c:/Users/James/OneDrive/Documents/GitHub/243/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
